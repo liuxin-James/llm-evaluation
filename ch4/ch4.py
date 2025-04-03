@@ -119,11 +119,12 @@ torch.set_printoptions(sci_mode=False)
 print("Mean:\n", mean)
 print("Variance:\n", var)
 
-
 # A layer normalization class
 '''
 scale 和 shift 是两个可训练参数（与输入具有相同的维度）。大语言模型（LLM）在训练中会自动调整这些参数，以改善模型在训练任务上的性能
 '''
+
+
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
@@ -152,6 +153,7 @@ print("Variance:\n", var)
 由于层归一化对每个输入的处理不依赖批量大小，因此在这些场景下提供了更高的灵活性和稳定性。这对于分布式训练或资源受限的环境中部署模型尤其有利。
 '''
 
+
 # An implementation of the GELU activation function : GELU（高斯误差线性单元）和 SwiGLU（Swish 门控线性单元）
 class GELU(nn.Module):
     def __init__(self):
@@ -163,13 +165,15 @@ class GELU(nn.Module):
             (x + 0.044715 * torch.pow(x, 3))
         ))
 
+
 '''
 更直观的观察 GELU 函数的形状，并与 ReLU 函数进行对比
 '''
 import matplotlib.pyplot as plt
+
 gelu, relu = GELU(), nn.ReLU()
 
-x = torch.linspace(-3, 3, 100)                                          #A
+x = torch.linspace(-3, 3, 100)  # A
 y_gelu, y_relu = gelu(x), relu(x)
 plt.figure(figsize=(8, 3))
 for i, (y, label) in enumerate(zip([y_gelu, y_relu], ["GELU", "ReLU"]), 1):
@@ -180,8 +184,10 @@ for i, (y, label) in enumerate(zip([y_gelu, y_relu], ["GELU", "ReLU"]), 1):
     plt.ylabel(f"{label}(x)")
     plt.grid(True)
 plt.tight_layout()
+
+
 # plt.show()
-#A 在 -3 到 3 的范围内生成 100 个样本数据点
+# A 在 -3 到 3 的范围内生成 100 个样本数据点
 
 # A feed forward neural network module
 class FeedForward(nn.Module):
@@ -196,11 +202,12 @@ class FeedForward(nn.Module):
     def forward(self, x):
         return self.layers(x)
 
+
 ffn = FeedForward(GPT_CONFIG_124M)
-x = torch.rand(2, 3, 768)          #A
+x = torch.rand(2, 3, 768)  # A
 out = ffn(x)
 print(out.shape)
-#A 创建一个 batch 大小为 2 的示例输入
+# A 创建一个 batch 大小为 2 的示例输入
 
 '''
 shortcut connection
@@ -231,4 +238,53 @@ class ExampleDeepNeuralNetwork(nn.Module):
             else:
                 x = layer_output
         return x
+
+
+# 初始化一个没有快捷连接的神经网络，其中每一层都被初始化为接受 3 个输入值并返回 3 个输出值。最后一层则返回一个单一的输出值
+layer_sizes = [3, 3, 3, 3, 3, 1]
+sample_input = torch.tensor([[1., 0., -1.]])
+torch.manual_seed(123)  # specify random seed for the initial weights for reproducibility
+model_without_shortcut = ExampleDeepNeuralNetwork(
+    layer_sizes, use_shortcut=False
+)
+
+
+# 实现一个用于在模型反向传播过程中计算梯度的函数
+def print_gradients(model, x):
+    # Forward pass
+    output = model(x)
+    target = torch.tensor([[0.]])
+
+    # Calculate loss based on how close the target
+    # and output are
+    loss = nn.MSELoss()
+    loss = loss(output, target)
+
+    # Backward pass to calculate the gradients
+    loss.backward()
+
+    for name, param in model.named_parameters():
+        if 'weight' in name:
+            # Print the mean absolute gradient of the weights
+            print(f"{name} has gradient mean of {param.grad.abs().mean().item()}")
+
+print_gradients(model_without_shortcut, sample_input)
+
+# 创建一个带有跳跃连接的模型
+'''
+梯度值逐渐趋于稳定，并未缩小到几乎消失的程度
+作为 LLM 的核心构建单元，快捷连接可以确保各层之间的梯度稳定流动，从而帮助 GPT 模型更有效的训练
+'''
+torch.manual_seed(123)
+model_with_shortcut = ExampleDeepNeuralNetwork(
+    layer_sizes, use_shortcut=True
+)
+print_gradients(model_with_shortcut, sample_input)
+
+'''
+LLM 中的每个Transformer 模块通常包含两个重要组件"
+1. 自注意力层（Self-Attention Layer）：计算每个 token 与其他 token 的关联，帮助模型理解上下文。
+2. 前馈网络（Feed Forward Network）：对每个 token 的嵌入（embedding）进行进一步的非线性转换，使模型能够提取更复杂的特征。
+这两个部分都在层归一化（Layer Normalization）和快捷连接（Shortcut Connections）的配合下工作
+'''
 
