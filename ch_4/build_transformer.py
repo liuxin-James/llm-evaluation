@@ -157,12 +157,17 @@ class TransformerBlock(nn.Module):
         return x
 
 
-torch.manual_seed(123)
-x = torch.rand(2, 4, 768)  # A
-block = TransformerBlock(GPT_CONFIG_124M)
-output = block(x)
-
-print("Input shape:", x.shape)
-print("Output shape:", output.shape)
+# torch.manual_seed(123)
+# x = torch.rand(2, 4, 768)  # A
+# block = TransformerBlock(GPT_CONFIG_124M)
+# output = block(x)
+#
+# print("Input shape:", x.shape)
+# print("Output shape:", output.shape)
 
 # A 建一个形状为 [batch_size, num_tokens, emb_dim] 的输入张量
+
+'''
+层归一化（LayerNorm）在这两个组件（即自注意力和前馈网络）之前应用，而 dropout 则在它们之后应用，用于正则化模型并防止过拟合。这种方式也称为前置层归一化（Pre-LayerNorm）。
+而在早期的架构中（如原始的 Transformer 模型），一般将层归一化应用在自注意力和前馈网络之后，这被称为后置层归一化（Post-LayerNorm），这种方式通常会导致较差的训练效果
+'''
