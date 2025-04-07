@@ -123,8 +123,6 @@ print("Variance:\n", var)
 '''
 scale 和 shift 是两个可训练参数（与输入具有相同的维度）。大语言模型（LLM）在训练中会自动调整这些参数，以改善模型在训练任务上的性能
 '''
-
-
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()
@@ -282,9 +280,8 @@ model_with_shortcut = ExampleDeepNeuralNetwork(
 print_gradients(model_with_shortcut, sample_input)
 
 '''
-LLM 中的每个Transformer 模块通常包含两个重要组件"
-1. 自注意力层（Self-Attention Layer）：计算每个 token 与其他 token 的关联，帮助模型理解上下文。
-2. 前馈网络（Feed Forward Network）：对每个 token 的嵌入（embedding）进行进一步的非线性转换，使模型能够提取更复杂的特征。
-这两个部分都在层归一化（Layer Normalization）和快捷连接（Shortcut Connections）的配合下工作
+快捷连接的两个重要的作用：
+1. 保持信息（或者说是特征）流畅传递
+2. 缓解梯度消失问题
 '''
 
