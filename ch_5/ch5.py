@@ -201,7 +201,7 @@ print("Validation loss:", val_loss)
 # C 通过 device 设置确保数据与 LLM 模型加载到同一设备上
 
 '''
-2.1：预训练LLM
+2：预训练LLM
 '''
 
 
@@ -311,3 +311,36 @@ plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
 
 # A 创建与 y 轴共用的第二个 x 轴
 # B 用于对齐刻度的隐藏图形
+
+'''
+在一个较小的数据集上进行多轮训练，容易产生过拟合的现象的原因：
+1. 模型容量与数据集大小的匹配问题
+2. 多轮训练导致对数据集细节的过度学习
+3. 数据集的多样性不足
+4. 过拟合与模型泛化能力的矛盾
+'''
+
+'''
+3: 通过解码策略控制生成结果的随机性
+'''
+# LLM 的文本生成策略，以减少训练数据的记忆倾向，提升 LLM 生成文本的原创性
+model.to("cpu")
+model.eval()
+
+'''
+3.1：Temperature scaling（一种在生成下一个词时加入概率选择的技术）
+
+为了实现概率采样过程，现在可以用 PyTorch 中的 multinomial 函数代替 argmax
+'''
+tokenizer = tiktoken.get_encoding("gpt2")
+token_ids = generate_text_simple(
+    model=model,
+    idx=text_to_token_ids("Every effort moves you", tokenizer),
+    max_new_tokens=25,
+    context_size=GPT_CONFIG_124M["context_length"]
+)
+print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
+
+
+
+
