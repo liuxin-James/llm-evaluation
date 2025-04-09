@@ -107,7 +107,7 @@ print(loss)
 '''
 1.3：计算训练集和验证集的损失
 '''
-file_path = "the-verdict.txt"
+file_path = "D://codes//llm-evaluation//ch_5//the-verdict.txt"
 with open(file_path, "r", encoding="utf-8") as file:
     text_data = file.read()
 
@@ -275,16 +275,16 @@ def generate_and_print_sample(model, tokenizer, device, start_context):
 '''
 实例化一个GPT model，开始训练
 '''
-torch.manual_seed(123)
-model = GPTModel(GPT_CONFIG_124M)
-model.to(device)
-optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)  # A
-num_epochs = 10
-train_losses, val_losses, tokens_seen = train_model_simple(
-    model, train_loader, val_loader, optimizer, device,
-    num_epochs=num_epochs, eval_freq=5, eval_iter=1,
-    start_context="Every effort moves you", tokenizer=tokenizer
-)
+# torch.manual_seed(123)
+# model = GPTModel(GPT_CONFIG_124M)
+# model.to(device)
+# optimizer = torch.optim.AdamW(model.parameters(), lr=0.0004, weight_decay=0.1)  # A
+# num_epochs = 10
+# train_losses, val_losses, tokens_seen = train_model_simple(
+#     model, train_loader, val_loader, optimizer, device,
+#     num_epochs=num_epochs, eval_freq=5, eval_iter=1,
+#     start_context="Every effort moves you", tokenizer=tokenizer
+# )
 
 # A .parameters() 方法返回模型的所有可训练权重参数
 
@@ -306,8 +306,8 @@ def plot_losses(epochs_seen, tokens_seen, train_losses, val_losses):
     plt.show()
 
 
-epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
-plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
+# epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
+# plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
 
 # A 创建与 y 轴共用的第二个 x 轴
 # B 用于对齐刻度的隐藏图形
@@ -342,5 +342,78 @@ token_ids = generate_text_simple(
 print("Output text:\n", token_ids_to_text(token_ids, tokenizer))
 
 
+# 定义一个简单的assign工具函数，用于检查两个张量或数组（左侧和右侧）的维度或形状是否一致，并将右侧张量作为可训练的 PyTorch 参数返回
+def assign(left, right):
+    if left.shape != right.shape:
+        raise ValueError(f"Shape mismatch. Left: {left.shape}, Right: {right.shape}")
+    return torch.nn.Parameter(torch.tensor(right))
+
+# Loading OpenAI weights into our GPT model code
+import numpy as np
+
+def load_weights_into_gpt(gpt, params):
+    gpt.pos_emb.weight = assign(gpt.pos_emb.weight, params['wpe'])               #A
+    gpt.tok_emb.weight = assign(gpt.tok_emb.weight, params['wte'])
+    for b in range(len(params["blocks"])):                                       #B
+        q_w, k_w, v_w = np.split(                                                #C
+            (params["blocks"][b]["attn"]["c_attn"])["w"], 3, axis=-1)
+        gpt.trf_blocks[b].att.W_query.weight = assign(
+            gpt.trf_blocks[b].att.W_query.weight, q_w.T)
+        gpt.trf_blocks[b].att.W_key.weight = assign(
+            gpt.trf_blocks[b].att.W_key.weight, k_w.T)
+        gpt.trf_blocks[b].att.W_value.weight = assign(
+            gpt.trf_blocks[b].att.W_value.weight, v_w.T)
+
+        q_b, k_b, v_b = np.split(
+            (params["blocks"][b]["attn"]["c_attn"])["b"], 3, axis=-1)
+        gpt.trf_blocks[b].att.W_query.bias = assign(
+            gpt.trf_blocks[b].att.W_query.bias, q_b)
+        gpt.trf_blocks[b].att.W_key.bias = assign(
+            gpt.trf_blocks[b].att.W_key.bias, k_b)
+        gpt.trf_blocks[b].att.W_value.bias = assign(
+            gpt.trf_blocks[b].att.W_value.bias, v_b)
+
+        gpt.trf_blocks[b].att.out_proj.weight = assign(
+            gpt.trf_blocks[b].att.out_proj.weight,
+            params["blocks"][b]["attn"]["c_proj"]["w"].T)
+        gpt.trf_blocks[b].att.out_proj.bias = assign(
+            gpt.trf_blocks[b].att.out_proj.bias,
+            params["blocks"][b]["attn"]["c_proj"]["b"])
+
+        gpt.trf_blocks[b].ff.layers[0].weight = assign(
+            gpt.trf_blocks[b].ff.layers[0].weight,
+            params["blocks"][b]["mlp"]["c_fc"]["w"].T)
+        gpt.trf_blocks[b].ff.layers[0].bias = assign(
+            gpt.trf_blocks[b].ff.layers[0].bias,
+            params["blocks"][b]["mlp"]["c_fc"]["b"])
+        gpt.trf_blocks[b].ff.layers[2].weight = assign(
+            gpt.trf_blocks[b].ff.layers[2].weight,
+            params["blocks"][b]["mlp"]["c_proj"]["w"].T)
+        gpt.trf_blocks[b].ff.layers[2].bias = assign(
+            gpt.trf_blocks[b].ff.layers[2].bias,
+            params["blocks"][b]["mlp"]["c_proj"]["b"])
+
+        gpt.trf_blocks[b].norm1.scale = assign(
+            gpt.trf_blocks[b].norm1.scale,
+            params["blocks"][b]["ln_1"]["g"])
+        gpt.trf_blocks[b].norm1.shift = assign(
+            gpt.trf_blocks[b].norm1.shift,
+            params["blocks"][b]["ln_1"]["b"])
+        gpt.trf_blocks[b].norm2.scale = assign(
+            gpt.trf_blocks[b].norm2.scale,
+            params["blocks"][b]["ln_2"]["g"])
+        gpt.trf_blocks[b].norm2.shift = assign(
+            gpt.trf_blocks[b].norm2.shift,
+            params["blocks"][b]["ln_2"]["b"])
+
+    gpt.final_norm.scale = assign(gpt.final_norm.scale, params["g"])
+    gpt.final_norm.shift = assign(gpt.final_norm.shift, params["b"])
+    gpt.out_head.weight = assign(gpt.out_head.weight, params["wte"])                   #D
+
+
+#A 将模型的位置嵌入和token 嵌入的权重设置为 params 中指定的值
+#B 遍历模型中的每个 Transformer 模块
+#C 使用 np.split 函数将注意力和偏置权重分为三等份，分别用于查询、键和值组件
+#D OpenAI 的原始 GPT-2 模型在输出层中复用了 token 嵌入的权重，以减少参数总量，这一概念称为权重共享
 
 

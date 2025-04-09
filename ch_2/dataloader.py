@@ -1,6 +1,6 @@
 import tiktoken
 
-with open("the-verdict.txt", "r", encoding="utf-8") as f:
+with open("D://codes//llm-evaluation//ch_2//the-verdict.txt", "r", encoding="utf-8") as f:
     raw_text = f.read()
 
 tokenizer = tiktoken.get_encoding('gpt2')
@@ -75,7 +75,7 @@ def create_dataloader_v1(txt, batch_size=4, max_length=256,
 # D 用于预处理的CPU进程数量
 
 # A 将数据加载器转换为 Python 迭代器，以便通过 Python 的内置 next() 函数获取下一个数据条目
-with open("the-verdict.txt", "r", encoding="utf-8") as f:
+with open("D://codes//llm-evaluation//ch_2//the-verdict.txt", "r", encoding="utf-8") as f:
     raw_text = f.read()
 
 dataloader = create_dataloader_v1(raw_text, batch_size=1, max_length=4, stride=1, shuffle=False)
