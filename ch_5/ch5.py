@@ -415,5 +415,3 @@ def load_weights_into_gpt(gpt, params):
 #B 遍历模型中的每个 Transformer 模块
 #C 使用 np.split 函数将注意力和偏置权重分为三等份，分别用于查询、键和值组件
 #D OpenAI 的原始 GPT-2 模型在输出层中复用了 token 嵌入的权重，以减少参数总量，这一概念称为权重共享
-
-
