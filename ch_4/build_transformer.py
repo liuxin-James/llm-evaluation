@@ -72,10 +72,10 @@ class MultiHeadAttention(nn.Module):
 # C 张量形状：(b, num_tokens, d_out)
 # D 我们通过添加 num_heads 维度来隐式地拆分矩阵。然后展开最后一个维度，使其形状从 (b, num_tokens, d_out) 转换为 (b, num_tokens, num_heads, head_dim)
 # E 将张量的形状从 (b, num_tokens, num_heads, head_dim) 转置为 (b, num_heads, num_tokens, head_dim)
-# F 对每个注意力头进行点积运算
+# F 对每个注意力头进行点积运算   num_heads X num_tokens X head_dim @ num_heads X head_dim X num_tokens
 # G 掩码被截断到 token 的数量
 # H 使用掩码填充注意力分数
-# I 张量形状：（b, num_tokens, n_heads, head_dim） num_heads X num_tokens X head_dim -> num_heads X head_dim X num_tokens - > num_heads X num_tokens X num_tokens -> num_heads X num_tokens X head_dim
+# I 张量形状：（b, num_tokens, n_heads, head_dim）  num_heads X num_tokens X num_tokens @ num_heads X num_tokens X head_dim -> num_heads X num_tokens X head_dim -> num_tokens X num_heads X head_dim
 # J 将多个注意力头的输出结果合并，其中输出维度 self.d_out 等于注意力头数 self.num_heads 与每个头的维度 self.head_dim 的乘积
 # K 添加一个可选的线性投影层
 
