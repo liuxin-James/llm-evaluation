@@ -122,8 +122,8 @@ out = generate_text_simple(
     max_new_tokens=7,
     context_size=GPT_CONFIG_124M["context_length"]
 )
-# print("Output:", out)
-# print("Output length:", len(out[0]))
+print("Output:", out)
+print("Output length:", len(out[0]))
 
 # 对输出进行解码
 decoded_text = tokenizer.decode(out.squeeze(0).tolist())
